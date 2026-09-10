@@ -30,7 +30,7 @@ def md_to_html(text):
     # Unordered Lists
     def replace_ul(match):
         lines = match.group(0).split('\n')
-        items = [f'<li>{line.strip("-* ") }</li>' for line in lines if line.strip()]
+        items = [f'<li>{line.strip("-* ")}</li>' for line in lines if line.strip()]
         return f'<ul style="margin-bottom: 1em;">\n  ' + '\n  '.join(items) + '\n</ul>'
 
     text = re.sub(r'((^[-*] .*(?:\n[-*] .*)*$))', replace_ul, text, flags=re.M)
@@ -95,7 +95,9 @@ LAYOUT = """
     <nav>
         <a href="index.html">🏠 Home</a>
     </nav>
-    {content}
+    <main>
+        {content}
+    </main>
 </body>
 </html>
 """
@@ -105,12 +107,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 nav { margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
 nav a { color: #007bff; text-decoration: none; font-weight: bold; }
 nav a:hover { text-decoration: underline; }
+main { padding-bottom: 40px; }
 h1, h2, h3 { color: #222; line-height: 1.2; }
 ul, ol { margin-bottom: 1em; padding-left: 2em; }
 li { margin-bottom: 0.25em; }
 p { margin-bottom: 1em; }
 a { color: #007bff; text-decoration: none; }
 a:hover { text-decoration: underline; }
+.post-entry { margin-bottom: 15px; display: block; text-decoration: none; padding: 10px; border: 1px solid #eee; border-radius: 5px; transition: background 0.2s; }
+.post-entry:hover { background: #f9f9f9; }
+.post-date { color: #888; font-size: 0.9em; margin-right: 10px; }
 """
 
 def build():
@@ -149,15 +155,21 @@ def build():
 
     # Generate Index
     posts.sort(key=lambda x: x['date'], reverse=True)
-    index_content = "<h1 style=\"margin-bottom: 1em\">Blog Posts</h1><ul style=\"list-style: none; padding: 0;\">";
-    for p in posts:
-        index_content += f'<li style="margin-bottom: 10px;"><strong style="color: #666;">{p["date"]}</strong> - <a href="{p["slug"]}">{p["title"]}</a></li>'
-    index_content += "</ul>"
+    index_title = "My Minimal Blog"
+    index_content = f'<h1 style="margin-bottom: 1em">{index_title}</h1>';
+    
+    if not posts:
+        index_content += '<p>No posts yet.</p>'
+    else:
+        index_content += '<div style="display: flex; flex-direction: column;">'
+        for p in posts:
+            index_content += f'<a class="post-entry" href="{p["slug"]}"><span class="post-date">{p["date"]}</span><strong>{p["title"]}</strong></a>'
+        index_content += '</div>'
     
     with open(os.path.join(output_dir, 'index.html'), 'w', encoding='utf-8') as out:
-        out.write(LAYOUT.format(title="My Minimal Blog", content=index_content))
+        out.write(LAYOUT.format(title=index_title, content=index_content))
 
     print(f"Successfully built {len(posts)} posts to {output_dir}/")
 
 if __name__ == "__main__":
-    build()
+    build()"
