@@ -16,11 +16,22 @@ def md_to_html(text):
     text = re.sub(r'^## (.*)$', r'<h2 style="margin-bottom: 0.5em">\1</h2>', text, flags=re.M)
     text = re.sub(r'^### (.*)$', r'<h3 style="margin-bottom: 0.5em">\1</h3>', text, flags=re.M)
     
+    # Horizontal Rules
+    text = re.sub(r'^---$', r'<hr style="border: 0; border-top: 1px solid #eee; margin: 2em 0;">', text, flags=re.M)
+
+    # Blockquotes
+    def replace_blockquote(match):
+        lines = match.group(0).split('\n')
+        content = "\n".join([line.strip('> ').strip() for line in lines if line.strip()])
+        return f'<blockquote style="border-left: 4px solid #ddd; padding-left: 15px; color: #666; font-style: italic; margin: 1em 0;">{content}</blockquote>'
+
+    text = re.sub(r'((^> .*(?:\n> .*)*$))', replace_blockquote, text, flags=re.M)
+
     # Unordered Lists
     def replace_ul(match):
         lines = match.group(0).split('\n')
         items = [f'<li>{line.strip("-* ") }</li>' for line in lines if line.strip()]
-        return f'<ul>\n  ' + '\n  '.join(items) + '\n</ul>'
+        return f'<ul style="margin-bottom: 1em;\">\n  ' + '\n  '.join(items) + '\n</ul>'
 
     text = re.sub(r'((^[-*] .*(?:\n[-*] .*)*$))', replace_ul, text, flags=re.M)
 
@@ -28,7 +39,7 @@ def md_to_html(text):
     def replace_ol(match):
         lines = match.group(0).split('\n')
         items = [f'<li>{re.sub(r'^\d+\.\s*', '', line)}</li>' for line in lines if line.strip()]
-        return f'<ol>\n  ' + '\n  '.join(items) + '\n</ol>'
+        return f'<ol style="margin-bottom: 1em;\">\n  ' + '\n  '.join(items) + '\n</ol>'
 
     text = re.sub(r'((^\d+\.\s+.*(?:\n\d+\.\s+.*)*$))', replace_ol, text, flags=re.M)
 
@@ -39,7 +50,7 @@ def md_to_html(text):
     text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', text)
 
     # Inline Code
-    text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
+    text = re.sub(r'`([^`]+)`', r'<code style="background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace;">\1</code>', text)
 
     # Bold and Italic
     text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
@@ -52,7 +63,7 @@ def md_to_html(text):
         block = block.strip()
         if not block:
             continue
-        if not (block.startswith('<h') or block.startswith('<ul') or block.startswith('<ol') or block.startswith('<pre') or block.startswith('<img')):
+        if not (block.startswith('<h') or block.startswith('<ul') or block.startswith('<ol') or block.startswith('<pre') or block.startswith('<img') or block.startswith('<blockquote') or block.startswith('<hr')):
             block = f'<p>{block.replace("\n", " ")}</p>'
         processed_blocks.append(block)
     
@@ -83,12 +94,12 @@ LAYOUT = """
         nav {{ margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }}
         nav a {{ color: #007bff; text-decoration: none; font-weight: bold; }}
         nav a:hover {{ text-decoration: underline; }}
-        h1 {{ color: #222; }}
-        ul {{ margin-bottom: 1em; }}
-        ol {{ margin-bottom: 1em; }}
+        h1, h2, h3 {{ color: #222; line-height: 1.2; }}
+        ul, ol {{ margin-bottom: 1em; padding-left: 2em; }}
         li {{ margin-bottom: 0.25em; }}
         p {{ margin-bottom: 1em; }}
-        code {{ background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace; }}
+        a {{ color: #007bff; text-decoration: none; }}
+        a:hover {{ text-decoration: underline; }}
     </style>
 </head>
 <body>
@@ -107,7 +118,7 @@ def build():
     if not os.path.exists(content_dir):
         os.makedirs(content_dir)
         with open(f"{content_dir}/hello.md", "w") as f:
-            f.write("---\ntitle: Hello World\ndate: 2023-10-27\n---\n# Welcome to my site!\nThis is a *simple* static site generated from **Markdown**.\n\n## What this supports:\n* Simple headers\n* Unordered lists\n* Bold and italic text\n\n### Try this too:\n1. Ordered lists\n2. Inline `code` snippets\n\n```python\nprint("Hello World")\n```\n\nCheck out [Google](https://google.com) for more info!\n\nEnjoy your minimalist blog!")
+            f.write("---\ntitle: Hello World\ndate: 2023-10-27\n---\n# Welcome to my site!\nThis is a *simple* static site generated from **Markdown**.\n\n## What this supports:\n* Simple headers\n* Unordered lists\n* Bold and italic text\n\n> This is a blockquote to highlight important information.\n\n---\n\n### Try this too:\n1. Ordered lists\n2. Inline `code` snippets\n\n```python\nprint("Hello World")\n```\n\nCheck out [Google](https://google.com) for more info!\n\nEnjoy your minimalist blog!")
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
