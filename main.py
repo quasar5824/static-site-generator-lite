@@ -5,15 +5,35 @@ from datetime import datetime
 # Simple Markdown-to-HTML converter (subset of Markdown)
 def md_to_html(text):
     # Headers
-    text = re.sub(r'^# (.*)$', r'<h1>\1</h1>', text, flags=re.M)
-    text = re.sub(r'^## (.*)$', r'<h2>\1</h2>', text, flags=re.M)
-    text = re.sub(r'^### (.*)$', r'<h3>\1</h3>', text, flags=re.M)
+    text = re.sub(r'^# (.*)$', r'<h1 style="margin-bottom: 0.5em">\1</h1>', text, flags=re.M)
+    text = re.sub(r'^## (.*)$', r'<h2 style="margin-bottom: 0.5em">\1</h2>', text, flags=re.M)
+    text = re.sub(r'^### (.*)$', r'<h3 style="margin-bottom: 0.5em">\1</h3>', text, flags=re.M)
+    
+    # Lists (Unordered)
+    # Match lines starting with * or - and wrap them in <ul>
+    def replace_list(match):
+        lines = match.group(0).split('\n')
+        items = [f'<li>{line.strip("-* ")}</li>' for line in lines if line.strip()]
+        return f'<ul>\n  ' + '\n  '.join(items) + '\n</ul>'
+
+    text = re.sub(r'((^[-*] .*(?:\n[-*] .*)*$))', replace_list, text, flags=re.M)
+
     # Bold and Italic
     text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
-    # Paragraphs
-    text = re.sub(r'\n\n', r'</p><p>', text)
-    return f'<p>{text}</p>'
+    
+    # Paragraphs: split by double newline, wrap non-html blocks
+    blocks = text.split('\n\n')
+    processed_blocks = []
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+        if not (block.startswith('<h') or block.startswith('<ul')):
+            block = f'<p>{block.replace("\n", " ")}</p>'
+        processed_blocks.append(block)
+    
+    return "\n".join(processed_blocks)
 
 def parse_frontmatter(content):
     pattern = r'^---\s*\n(.*?)\n---\s*\n(.*)$'
@@ -30,20 +50,26 @@ def parse_frontmatter(content):
 
 LAYOUT = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     <style>
-        body {{ font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }}
-        nav {{ margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; }}
-        a {{ color: #007bff; text-decoration: none; }}
-        a:hover {{ text-decoration: underline; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }}
+        nav {{ margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }}
+        nav a {{ color: #007bff; text-decoration: none; font-weight: bold; }}
+        nav a:hover {{ text-decoration: underline; }}
         h1 {{ color: #222; }}
+        ul {{ margin-bottom: 1em; }}
+        li {{ margin-bottom: 0.25em; }}
+        p {{ margin-bottom: 1em; }}
     </style>
 </head>
 <body>
-    <nav><a href="index.html">Home</a></nav>
+    <nav>
+        <a href="index.html">🏠 Home</a>
+    </nav>
     {content}
 </body>
 </html>
@@ -56,7 +82,7 @@ def build():
     if not os.path.exists(content_dir):
         os.makedirs(content_dir)
         with open(f"{content_dir}/hello.md", "w") as f:
-            f.write("---\ntitle: Hello World\ndate: 2023-10-27\n---\n# Welcome to my site!\nThis is a *simple* static site generated from **Markdown**.")
+            f.write("---\ntitle: Hello World\ndate: 2023-10-27\n---\n# Welcome to my site!\nThis is a *simple* static site generated from **Markdown**.\n\n## What this supports:\n* Simple headers\n* Unordered lists\n* Bold and italic text\n\nEnjoy your minimalist blog!")
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -64,7 +90,7 @@ def build():
     posts = []
     for filename in os.listdir(content_dir):
         if filename.endswith('.md'):
-            with open(os.path.join(content_dir, filename), 'r') as f:
+            with open(os.path.join(content_dir, filename), 'r', encoding='utf-8') as f:
                 raw = f.read()
                 meta, body = parse_frontmatter(raw)
                 html_body = md_to_html(body)
@@ -72,22 +98,22 @@ def build():
                 title = meta.get('title', filename)
                 slug = filename.replace('.md', '.html')
                 
-                with open(os.path.join(output_dir, slug), 'w') as out:
+                with open(os.path.join(output_dir, slug), 'w', encoding='utf-8') as out:
                     out.write(LAYOUT.format(title=title, content=html_body))
                 
                 posts.append({'title': title, 'slug': slug, 'date': meta.get('date', 'Unknown')})
 
     # Generate Index
     posts.sort(key=lambda x: x['date'], reverse=True)
-    index_content = "<h1>Blog Posts</h1><ul>"
+    index_content = "<h1 style=\"margin-bottom: 1em\">Blog Posts</h1><ul style=\"list-style: none; padding: 0;\">";
     for p in posts:
-        index_content += f'<li>{p["date"]} - <a href="{p["slug"]}">{p["title"]}</a></li>'
+        index_content += f'<li style="margin-bottom: 10px;"><strong style="color: #666;">{p["date"]}</strong> - <a href="{p["slug"]}">{p["title"]}</a></li>'
     index_content += "</ul>"
     
-    with open(os.path.join(output_dir, 'index.html'), 'w') as out:
+    with open(os.path.join(output_dir, 'index.html'), 'w', encoding='utf-8') as out:
         out.write(LAYOUT.format(title="My Minimal Blog", content=index_content))
 
     print(f"Successfully built {len(posts)} pages to {output_dir}/")
 
 if __name__ == "__main__":
-    build()
+    build()"
