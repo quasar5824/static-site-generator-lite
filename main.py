@@ -32,6 +32,12 @@ def md_to_html(text):
 
     text = re.sub(r'((^\d+\.\s+.*(?:\n\d+\.\s+.*)*$))', replace_ol, text, flags=re.M)
 
+    # Images: ![alt](url)
+    text = re.sub(r'!\[(.*?)\]\((.*?)\)', r'<img src="\2" alt="\1" style="max-width: 100%; height: auto; margin: 1em 0;">', text)
+
+    # Links: [text](url)
+    text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', text)
+
     # Inline Code
     text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
 
@@ -46,7 +52,7 @@ def md_to_html(text):
         block = block.strip()
         if not block:
             continue
-        if not (block.startswith('<h') or block.startswith('<ul') or block.startswith('<ol') or block.startswith('<pre')):
+        if not (block.startswith('<h') or block.startswith('<ul') or block.startswith('<ol') or block.startswith('<pre') or block.startswith('<img')):
             block = f'<p>{block.replace("\n", " ")}</p>'
         processed_blocks.append(block)
     
@@ -101,7 +107,7 @@ def build():
     if not os.path.exists(content_dir):
         os.makedirs(content_dir)
         with open(f"{content_dir}/hello.md", "w") as f:
-            f.write("---\ntitle: Hello World\ndate: 2023-10-27\n---\n# Welcome to my site!\nThis is a *simple* static site generated from **Markdown**.\n\n## What this supports:\n* Simple headers\n* Unordered lists\n* Bold and italic text\n\n### Try this too:\n1. Ordered lists\n2. Inline `code` snippets\n\n```python\nprint("Hello World")\n```\n\nEnjoy your minimalist blog!")
+            f.write("---\ntitle: Hello World\ndate: 2023-10-27\n---\n# Welcome to my site!\nThis is a *simple* static site generated from **Markdown**.\n\n## What this supports:\n* Simple headers\n* Unordered lists\n* Bold and italic text\n\n### Try this too:\n1. Ordered lists\n2. Inline `code` snippets\n\n```python\nprint("Hello World")\n```\n\nCheck out [Google](https://google.com) for more info!\n\nEnjoy your minimalist blog!")
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
