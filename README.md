@@ -5,8 +5,8 @@ A lightweight, zero-dependency static site generator written in Python. Convert 
 ## Features
 - Converts `.md` files to `.html`.
 - Supports basic front-matter for titles and dates.
-- Automatic index page generation.
-- Simple CSS theme included.
+- Automatic index page generation (for files with dates).
+- Separate CSS theme for cleaner HTML.
 
 ## Usage
 1. Place your markdown files in the `content/` directory.

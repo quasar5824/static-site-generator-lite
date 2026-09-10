@@ -31,7 +31,7 @@ def md_to_html(text):
     def replace_ul(match):
         lines = match.group(0).split('\n')
         items = [f'<li>{line.strip("-* ") }</li>' for line in lines if line.strip()]
-        return f'<ul style="margin-bottom: 1em;\">\n  ' + '\n  '.join(items) + '\n</ul>'
+        return f'<ul style="margin-bottom: 1em;">\n  ' + '\n  '.join(items) + '\n</ul>'
 
     text = re.sub(r'((^[-*] .*(?:\n[-*] .*)*$))', replace_ul, text, flags=re.M)
 
@@ -39,7 +39,7 @@ def md_to_html(text):
     def replace_ol(match):
         lines = match.group(0).split('\n')
         items = [f'<li>{re.sub(r'^\d+\.\s*', '', line)}</li>' for line in lines if line.strip()]
-        return f'<ol style="margin-bottom: 1em;\">\n  ' + '\n  '.join(items) + '\n</ol>'
+        return f'<ol style="margin-bottom: 1em;">\n  ' + '\n  '.join(items) + '\n</ol>'
 
     text = re.sub(r'((^\d+\.\s+.*(?:\n\d+\.\s+.*)*$))', replace_ol, text, flags=re.M)
 
@@ -89,18 +89,7 @@ LAYOUT = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }}
-        nav {{ margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }}
-        nav a {{ color: #007bff; text-decoration: none; font-weight: bold; }}
-        nav a:hover {{ text-decoration: underline; }}
-        h1, h2, h3 {{ color: #222; line-height: 1.2; }}
-        ul, ol {{ margin-bottom: 1em; padding-left: 2em; }}
-        li {{ margin-bottom: 0.25em; }}
-        p {{ margin-bottom: 1em; }}
-        a {{ color: #007bff; text-decoration: none; }}
-        a:hover {{ text-decoration: underline; }}
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <nav>
@@ -109,6 +98,19 @@ LAYOUT = """
     {content}
 </body>
 </html>
+"""
+
+CSS_CONTENT = """
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }
+nav { margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+nav a { color: #007bff; text-decoration: none; font-weight: bold; }
+nav a:hover { text-decoration: underline; }
+h1, h2, h3 { color: #222; line-height: 1.2; }
+ul, ol { margin-bottom: 1em; padding-left: 2em; }
+li { margin-bottom: 0.25em; }
+p { margin-bottom: 1em; }
+a { color: #007bff; text-decoration: none; }
+a:hover { text-decoration: underline; }
 """
 
 def build():
@@ -122,6 +124,10 @@ def build():
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
+
+    # Save CSS file
+    with open(os.path.join(output_dir, 'style.css'), 'w', encoding='utf-8') as css_file:
+        css_file.write(CSS_CONTENT)
 
     posts = []
     for filename in os.listdir(content_dir):
@@ -137,7 +143,9 @@ def build():
                 with open(os.path.join(output_dir, slug), 'w', encoding='utf-8') as out:
                     out.write(LAYOUT.format(title=title, content=html_body))
                 
-                posts.append({'title': title, 'slug': slug, 'date': meta.get('date', 'Unknown')})
+                # Only add to index if it has a date (treated as a blog post)
+                if 'date' in meta:
+                    posts.append({'title': title, 'slug': slug, 'date': meta.get('date', 'Unknown')})
 
     # Generate Index
     posts.sort(key=lambda x: x['date'], reverse=True)
@@ -149,7 +157,7 @@ def build():
     with open(os.path.join(output_dir, 'index.html'), 'w', encoding='utf-8') as out:
         out.write(LAYOUT.format(title="My Minimal Blog", content=index_content))
 
-    print(f"Successfully built {len(posts)} pages to {output_dir}/")
+    print(f"Successfully built {len(posts)} posts to {output_dir}/")
 
 if __name__ == "__main__":
     build()
